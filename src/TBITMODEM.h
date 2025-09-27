@@ -15,7 +15,10 @@ typedef struct {
 } t_coder_t;
 
 typedef struct {
-	uint8_t weakeup;
+	uint8_t data[2];
+} t_coder_mnch_t;
+
+typedef struct {
 	uint8_t preamble_a;
 	uint8_t preamble_b;
 	uint8_t len;
@@ -23,9 +26,11 @@ typedef struct {
 
 typedef struct {
 	uint16_t crc16;
-	uint8_t sleep;
 } t_frame_postfix_t;
 #pragma pack (pop)
+
+
+
 
 
 class TBITMODTX {
@@ -50,7 +55,16 @@ class TBITMODTX {
 	
 		uint16_t data_coder (void *src, void *dst, uint8_t sz);
 		void coder_data (uint8_t data, t_coder_t &dst); 
+		
+		
 		uint16_t coder_calc16 (void *src, uint16_t sz); 
+		bool set_bit_mncharr_array (void *d, uint32_t ixbit, bool v);
+		uint32_t add_mncharr_ix;
+		bool add_mncharr_bit (bool v);
+		bool add_mncharr_preamble ();
+		bool add_mncharr_data (uint8_t dat);
+		bool add_mncharr_arr (void *src, uint8_t sz);
+		uint16_t mncharr_data_coder (void *src, void *dst, uint8_t sz);
 	
 	public:
 		TBITMODTX (const S_GPIOPIN *p, uint32_t sz, uint8_t pls_bt);

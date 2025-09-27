@@ -212,3 +212,112 @@ while (cnt)
 }
 
 
+
+bool TBITMODTX::set_bit_mncharr_array (void *d, uint32_t indxbit, bool v)
+{
+	bool rv = false;
+	uint8_t *dst = (uint8_t*)d;
+	uint32_t ixbyte = indxbit / 8;
+	uint8_t ixbit = indxbit % 8;
+	uint8_t mask_bt = 128 >> ixbit;
+	if (c_alloc_size > ixbyte)
+		{
+		uint8_t data = *dst;
+		if (v)
+			{
+			data |= mask_bt;
+			}
+		else
+			{
+			data &= (0xFF - mask_bt);
+			}
+		*dst = data;
+		rv = true;
+		}
+	return rv;
+}
+
+
+
+bool TBITMODTX::add_mncharr_bit (bool v)
+{
+bool rv = set_bit_mncharr_array (buffer, add_mncharr_ix, v);
+if (rv) add_mncharr_ix++;
+return rv;
+}
+
+
+
+bool TBITMODTX::add_mncharr_preamble ()
+{
+	bool rv = add_mncharr_bit (true);
+	do	{
+			if (!add_mncharr_bit (true)) break;
+			if (!add_mncharr_bit (true)) break;
+			if (!add_mncharr_bit (false)) break;
+		  rv = true;
+			} while (false);
+	return rv;
+}
+
+
+
+bool TBITMODTX::add_mncharr_data (uint8_t dat)
+{
+uint8_t cnt = 8, mask_rl = 128;
+bool db, rv = false;
+	while (cnt)
+		{
+		db = (dat & mask_rl)? false: true;
+		if (!add_mncharr_bit (db)) break;
+		if (!add_mncharr_bit (!db)) break;
+		mask_rl >>= 1;
+		cnt--;
+		}
+	if (!cnt) rv = true;
+	return rv;
+}
+
+
+
+bool TBITMODTX::add_mncharr_arr (void *src, uint8_t sz)
+{
+bool rv = false;
+	uint8_t *s = (uint8_t*)src;
+	while (sz)
+		{
+		if (!add_mncharr_data (*s++)) break;
+		sz--;
+		}
+	if (!sz) rv = true;
+return rv;
+}
+
+
+
+uint16_t TBITMODTX::mncharr_data_coder (void *src, void *dst, uint8_t sz)
+{
+uint16_t rv = 0;
+add_mncharr_ix = 0;
+	t_frame_prefix_t prfix;
+	t_frame_postfix_t postfix;
+	do	{
+			if (!add_mncharr_preamble ()) break;
+			if (!add_mncharr_preamble ()) break;
+			if (!add_mncharr_preamble ()) break;
+			prfix.len = sz;
+			prfix.preamble_a = C_PREAMBLE_BYTE_A;
+		  prfix.preamble_b = C_PREAMBLE_BYTE_B;
+			if (!add_mncharr_arr(&prfix, sizeof(prfix))) break;
+			if (!add_mncharr_arr(src, sz)) break;
+			postfix.crc16 = coder_calc16 (src, sz);
+			if (!add_mncharr_arr(&prfix, sizeof(prfix))) break;
+			rv = add_mncharr_ix / 8;
+			if (add_mncharr_ix % 8) rv++;
+			} while (false);
+	
+return rv;
+}
+
+
+
