@@ -478,6 +478,21 @@
               <FileType>8</FileType>
               <FilePath>.\src\hard_rut.cpp</FilePath>
             </File>
+            <File>
+              <FileName>IEXTINT.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\src\IEXTINT.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>ITIMINT.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\src\ITIMINT.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>TGLOBALISR.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\src\TGLOBALISR.cpp</FilePath>
+            </File>
           </Files>
         </Group>
       </Groups>

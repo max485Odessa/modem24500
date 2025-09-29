@@ -35,8 +35,7 @@ typedef struct {
 
 class TBITMODTX {
 		const S_GPIOPIN *pin;
-		const uint16_t c_count_pulses;
-		uint16_t loc_pulses_cnt;
+
 	
 		uint8_t *buffer;
 		const uint32_t c_alloc_size;
@@ -67,9 +66,22 @@ class TBITMODTX {
 		uint16_t mncharr_data_coder (void *src, void *dst, uint8_t sz);
 	
 	public:
-		TBITMODTX (const S_GPIOPIN *p, uint32_t sz, uint8_t pls_bt);
+		TBITMODTX (const S_GPIOPIN *p, uint32_t sz);
 		bool is_free ();
 		bool send (void *src, uint8_t sz);
+};
+
+
+
+class TBITMODRX {
+		uint8_t *buffer;
+		const uint32_t c_alloc_size;
+	
+	public:
+		TBITMODRX (const S_GPIOPIN *p, uint32_t sz);
+		uint32_t check_in ();
+		uint32_t in (void *dst, uint32_t sz_max);
+		
 };
 
 

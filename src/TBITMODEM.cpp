@@ -3,7 +3,7 @@
 
 
 
-TBITMODTX::TBITMODTX (const S_GPIOPIN *p, uint32_t sz, uint8_t pls_bt) : pin (p), c_alloc_size (sz*4 + sizeof(t_frame_prefix_t) + sizeof(t_frame_postfix_t)), c_count_pulses (pls_bt)
+TBITMODTX::TBITMODTX (const S_GPIOPIN *p, uint32_t sz) : pin (p), c_alloc_size (sz*4 + sizeof(t_frame_prefix_t) + sizeof(t_frame_postfix_t))
 {
 _pin_low_init_out_pp ((S_GPIOPIN*)pin, 1, EHRTGPIOSPEED_MID);
 _pin_output ((S_GPIOPIN*)pin, false);
@@ -18,7 +18,6 @@ void TBITMODTX::clear ()
 	lp_tx_data = 0;
 	tx_bitmask = 0;
 	tx_sz = 0;
-	loc_pulses_cnt = 0;
 }
 
 		
@@ -71,7 +70,6 @@ if (!lp_tx_data && sz && sz <= c_alloc_size)
 		tx_bitmask = 0;
 		tx_sz = csz;
 		lp_tx_data = buffer;
-		loc_pulses_cnt = c_count_pulses;
 		rv = true;
 		}
 	}
@@ -320,4 +318,24 @@ return rv;
 }
 
 
+
+TBITMODRX::TBITMODRX (const S_GPIOPIN *p, uint32_t sz) : c_alloc_size (sz)
+{
+}
+
+
+		
+uint32_t TBITMODRX::check_in ()
+{
+	uint32_t rv = 0;
+	return rv;
+}
+
+
+
+uint32_t TBITMODRX::in (void *dst, uint32_t sz_max)
+{
+	uint32_t rv = 0;
+	return rv;
+}
 

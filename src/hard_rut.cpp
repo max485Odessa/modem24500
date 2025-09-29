@@ -2,9 +2,12 @@
 
 
 static bool cur_clock_state[EGPIOIX_ENDENUM] = {0,0,0,0,0,0};
+static void *isr_gpio_this[C_MAXGPIOPININTERRUPT] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
 
 #ifdef STM32F103x6
+	
+	static void *isr_timers_this[ESYSTIM_ENDENUM] = {0,0,0};
 	static USART_TypeDef *usarthardarr[ESYSUSART_ENDENUM] = {USART1, USART2};
 	static const TIM_TypeDef *cur_port_tim[ESYSTIM_ENDENUM] = {TIM1,TIM2,TIM3};
 	static const SPI_TypeDef *cur_port_spi[ESYSSPI_ENDENUM] = {SPI1};
@@ -13,6 +16,9 @@ static bool cur_clock_state[EGPIOIX_ENDENUM] = {0,0,0,0,0,0};
 	static bool cur_clock_state_spi[ESYSSPI_ENDENUM] = {0};
 	static bool cur_clock_state_uart[ESYSUSART_ENDENUM] = {0,0};
 	static const bool period_tim[ESYSTIM_ENDENUM] = {0,true,0};
+	static const IRQn_Type isr_tim_vector_arr[ESYSTIM_ENDENUM] = {TIM1_CC_IRQn, TIM2_IRQn, TIM3_IRQn};
+	static const IRQn_Type gpio_extirq_type[C_MAXGPIOPININTERRUPT] = {EXTI0_IRQn, EXTI1_IRQn, EXTI2_IRQn, EXTI3_IRQn, EXTI4_IRQn, EXTI9_5_IRQn, EXTI9_5_IRQn, EXTI9_5_IRQn, EXTI9_5_IRQn, EXTI9_5_IRQn, \
+EXTI15_10_IRQn, EXTI15_10_IRQn, EXTI15_10_IRQn, EXTI15_10_IRQn, EXTI15_10_IRQn, EXTI15_10_IRQn};
 #endif
 
 
@@ -52,6 +58,47 @@ static bool cur_clock_state[EGPIOIX_ENDENUM] = {0,0,0,0,0,0};
 
 
 
+void hard_gpio_procedure_this_set (uint8_t p, void *cb)
+{
+	if (p < C_MAXGPIOPININTERRUPT) isr_gpio_this[p] = cb;
+}
+
+
+void *hard_gpio_procedure_this_get (uint8_t p)
+{
+	void *rv = 0;
+	if (p < C_MAXGPIOPININTERRUPT) rv = isr_gpio_this[p];
+	return rv;
+}
+
+
+
+
+
+void hard_timer_procedure_this_set (ESYSTIM p, void *cb)
+{
+	if (p < ESYSTIM_ENDENUM) isr_timers_this[p] = cb;
+}
+
+
+void *hard_timer_procedure_this_get (ESYSTIM p)
+{
+	void *rv = 0;
+	if (p < ESYSTIM_ENDENUM) rv = isr_timers_this[p];
+	return rv;
+}
+
+
+IRQn_Type hard_gpio_ext_irq_type (uint8_t p)
+{
+	IRQn_Type rv = (IRQn_Type)0xFF;
+	if (p < C_MAXGPIOPININTERRUPT) rv = gpio_extirq_type[p];
+	return rv;
+}
+
+
+
+
 USART_TypeDef *hard_get_usart (ESYSUSART s)
 {
 	USART_TypeDef *rv = 0;
@@ -60,6 +107,13 @@ USART_TypeDef *hard_get_usart (ESYSUSART s)
 }
 
 
+
+IRQn_Type hard_tim_irq_type (ESYSTIM p)
+{
+	IRQn_Type rv = (IRQn_Type)0xFF;
+	if (p < ESYSTIM_ENDENUM) rv = isr_tim_vector_arr[p];
+	return rv;
+}
 
 
 IRQn_Type hard_spi_irq_type (ESYSSPI p)

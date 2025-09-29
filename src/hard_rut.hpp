@@ -19,6 +19,7 @@
 #ifdef STM32F103x6
 	#define HRDCPU 1
 	#include "stm32f1xx_hal.h"
+	#include "stm32f1xx_hal_conf.h"
 	
 	enum ESYSUSART {ESYSUSART_1 = 0, ESYSUSART_2, ESYSUSART_ENDENUM};
 	enum ESYSSPI {ESYSSPI_1 = 0, ESYSSPI_ENDENUM};
@@ -31,6 +32,7 @@
 #ifdef STM32F103xB 
 	#define HRDCPU 1
 	#include "stm32f1xx_hal.h"
+	#include "stm32f1xx_hal_conf.h"
 	
 	enum ESYSUSART {ESYSUSART_1 = 0, ESYSUSART_2, ESYSUSART_3, ESYSUSART_ENDENUM};
 	enum ESYSSPI {ESYSSPI_1 = 0, ESYSSPI_2, ESYSSPI_ENDENUM};
@@ -92,6 +94,7 @@
 	#define C_HRDGPIO_PULLDW GPIO_PULLDOWN
 #endif
 
+#define C_MAXGPIOPININTERRUPT 16
 
 
 
@@ -135,7 +138,14 @@ void _pin_low_init_out_od_af ( uint8_t af_codemux, S_GPIOPIN *lp_pin, EHRTGPIOSP
 void _pin_low_init_in_af ( uint8_t af_codemux, S_GPIOPIN *lp_pin );
 #endif
 
+void hard_gpio_procedure_this_set (uint8_t p, void *cb);
+void *hard_gpio_procedure_this_get (uint8_t p);
 
+void *hard_timer_procedure_this_get (ESYSTIM p);
+void hard_timer_procedure_this_set (ESYSTIM p, void *cb);
+
+IRQn_Type hard_gpio_ext_irq_type (uint8_t p);
+IRQn_Type hard_tim_irq_type (ESYSTIM p);
 IRQn_Type hard_spi_irq_type (ESYSSPI p);
 TIM_TypeDef *hard_get_tim (ESYSTIM t, bool *f_wdth_32);
 USART_TypeDef *hard_get_usart (ESYSUSART s);
