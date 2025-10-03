@@ -570,7 +570,7 @@ void hard_usart_clock_disable (USART_TypeDef *p)
 
 
 
-static void hard_gpio_init_raw (GPIO_InitTypeDef *gpio, S_GPIOPIN *inarr, unsigned short cnt)
+static void hard_gpio_init_raw ( GPIO_InitTypeDef *gpio, const S_GPIOPIN *inarr, unsigned short cnt)
 {
 	while (cnt)
 		{
@@ -585,7 +585,7 @@ static void hard_gpio_init_raw (GPIO_InitTypeDef *gpio, S_GPIOPIN *inarr, unsign
 
 
 
-void _pin_low_init_out_pp (S_GPIOPIN *lp_pin, unsigned char cnt, EHRTGPIOSPEED sp)
+void _pin_low_init_out_pp (const S_GPIOPIN *lp_pin, unsigned char cnt, EHRTGPIOSPEED sp)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
 	
@@ -608,7 +608,7 @@ void _pin_low_init_out_pp (S_GPIOPIN *lp_pin, unsigned char cnt, EHRTGPIOSPEED s
 
 
 #if (HRDCPU == 1)
-void _pin_low_init_out_pp_af (S_GPIOPIN *lp_pin, EHRTGPIOSPEED sp )
+void _pin_low_init_out_pp_af (const S_GPIOPIN *lp_pin, EHRTGPIOSPEED sp )
 #else
 void _pin_low_init_out_pp_af ( uint8_t af_codemux, S_GPIOPIN *lp_pin, EHRTGPIOSPEED sp )
 #endif
@@ -628,7 +628,7 @@ void _pin_low_init_out_pp_af ( uint8_t af_codemux, S_GPIOPIN *lp_pin, EHRTGPIOSP
 
 
 #if (HRDCPU == 1)
-void _pin_low_init_out_od_af (S_GPIOPIN *lp_pin, EHRTGPIOSPEED sp )
+void _pin_low_init_out_od_af (const S_GPIOPIN *lp_pin, EHRTGPIOSPEED sp )
 #else
 void _pin_low_init_out_od_af ( uint8_t af_codemux, S_GPIOPIN *lp_pin, EHRTGPIOSPEED sp )
 #endif
@@ -663,7 +663,7 @@ void _pin_low_init_in_af ( uint8_t af_codemux, S_GPIOPIN *lp_pin )
 
 
 
-void _pin_low_init_out_od (S_GPIOPIN *lp_pin, unsigned char cnt, EHRTGPIOSPEED sp)
+void _pin_low_init_out_od (const S_GPIOPIN *lp_pin, unsigned char cnt, EHRTGPIOSPEED sp)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
 	
@@ -685,7 +685,7 @@ void _pin_low_init_out_od (S_GPIOPIN *lp_pin, unsigned char cnt, EHRTGPIOSPEED s
 
 
 
-void _pin_low_init_in (S_GPIOPIN *lp_pin, uint8_t cnt, EHRTGPIOSPEED sp, EHRTGPIOPULL pl)
+void _pin_low_init_in (const S_GPIOPIN *lp_pin, uint8_t cnt, EHRTGPIOSPEED sp, EHRTGPIOPULL pl)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
 	while (cnt)
@@ -731,7 +731,7 @@ void _pin_low_init_in (S_GPIOPIN *lp_pin, unsigned char cnt, EHRTGPIOSPEED sp)
 
 static const uint32_t modintarr[EGPINTMOD_ENDENUM] = {GPIO_MODE_IT_RISING, GPIO_MODE_IT_FALLING, GPIO_MODE_IT_RISING_FALLING};
 
-void _pin_low_init_int (S_GPIOPIN *lp_pin, unsigned char cnt, EGPINTMOD md, EHRTGPIOSPEED sp)
+void _pin_low_init_int (const S_GPIOPIN *lp_pin, unsigned char cnt, EGPINTMOD md, EHRTGPIOSPEED sp)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
 	
@@ -753,7 +753,7 @@ void _pin_low_init_int (S_GPIOPIN *lp_pin, unsigned char cnt, EGPINTMOD md, EHRT
 
 
 
-void _pin_low_init_adc (S_GPIOPIN *lp_pin, unsigned char cnt, EHRTGPIOSPEED sp)
+void _pin_low_init_adc (const S_GPIOPIN *lp_pin, unsigned char cnt, EHRTGPIOSPEED sp)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
 	GPIO_InitStructure.Speed = sp;
@@ -825,7 +825,7 @@ if (lp_pin) {
 }
 
 
-void _pin_output (S_GPIOPIN *lp_pin, bool val)
+void _pin_output (const S_GPIOPIN *lp_pin, bool val)
 {
   if (val)
 		{

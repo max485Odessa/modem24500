@@ -4,6 +4,11 @@
 #include "stdint.h"
 #include "hard_rut.hpp"
 
+#ifdef MODEM_RX
+	#include "IEXTINT.h"
+	#include "ITIMINT.h"
+#endif
+
 #define C_WAKEUP_BYTE 0xFF
 #define C_PREAMBLE_BYTE_A 0x55
 #define C_PREAMBLE_BYTE_B 0xAA
@@ -36,7 +41,6 @@ typedef struct {
 class TBITMODTX {
 		const S_GPIOPIN *pin;
 
-	
 		uint8_t *buffer;
 		const uint32_t c_alloc_size;
 	
@@ -55,7 +59,6 @@ class TBITMODTX {
 		uint16_t data_coder (void *src, void *dst, uint8_t sz);
 		void coder_data (uint8_t data, t_coder_t &dst); 
 		
-		
 		uint16_t coder_calc16 (void *src, uint16_t sz); 
 		bool set_bit_mncharr_array (void *d, uint32_t ixbit, bool v);
 		uint32_t add_mncharr_ix;
@@ -73,16 +76,26 @@ class TBITMODTX {
 
 
 
-class TBITMODRX {
+#ifdef MODEM_RX
+class TBITMODRX: public IEXTISRCB, public ITIMCB {
 		uint8_t *buffer;
 		const uint32_t c_alloc_size;
 	
+		const S_GPIOPIN *pinisr;
+	
+		virtual void isr_gpio_cb_isr (uint8_t isr_n, bool pinstate) override;
+		TEXTINT_ISR *ext_isr_obj;
+	
+		TTIM_MKS_ISR *timer_isr;
+		const ESYSTIM sys_tim;
+		virtual void tim_comp_cb_user_isr (ESYSTIM t, EPWMCHNL ch) override;
+	
 	public:
-		TBITMODRX (const S_GPIOPIN *p, uint32_t sz);
+		TBITMODRX (const S_GPIOPIN *p, uint32_t sz, const ESYSTIM t);
 		uint32_t check_in ();
 		uint32_t in (void *dst, uint32_t sz_max);
 		
 };
-
+#endif
 
 #endif

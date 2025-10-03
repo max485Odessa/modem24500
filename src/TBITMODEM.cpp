@@ -318,9 +318,13 @@ return rv;
 }
 
 
-
-TBITMODRX::TBITMODRX (const S_GPIOPIN *p, uint32_t sz) : c_alloc_size (sz)
+#ifdef MODEM_RX
+TBITMODRX::TBITMODRX (const S_GPIOPIN *p, uint32_t sz, const ESYSTIM t) : pinisr(p), c_alloc_size (sz), sys_tim (t)
 {
+	 ext_isr_obj = new TEXTINT_ISR (pinisr, EGPINTMOD_FALLING);
+	 ext_isr_obj->set_cb (this);
+	 timer_isr = new TTIM_MKS_ISR (sys_tim, 65535, 10000000);
+
 }
 
 
@@ -339,3 +343,18 @@ uint32_t TBITMODRX::in (void *dst, uint32_t sz_max)
 	return rv;
 }
 
+
+
+void TBITMODRX::isr_gpio_cb_isr (uint8_t isr_n, bool pinstate)
+{
+}
+
+
+
+void TBITMODRX::tim_comp_cb_user_isr (ESYSTIM t, EPWMCHNL ch)
+{
+
+}
+
+
+#endif

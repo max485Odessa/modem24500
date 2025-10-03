@@ -105,7 +105,7 @@ void TEXTINT_ISR::gpio_isr (uint16_t pinn)
 
 
 
-TEXTINT_ISR::TEXTINT_ISR (S_GPIOPIN *p, EGPINTMOD md)
+TEXTINT_ISR::TEXTINT_ISR (const S_GPIOPIN *p, EGPINTMOD md) : c_pin_in (p)
 {
 	cb_exec = 0;
 	c_pin_in = p;
