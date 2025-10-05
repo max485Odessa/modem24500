@@ -3,7 +3,30 @@
 
 
 
-TBITMODTX::TBITMODTX (const S_GPIOPIN *p, uint32_t sz) : pin (p), c_alloc_size (sz*4 + sizeof(t_frame_prefix_t) + sizeof(t_frame_postfix_t))
+uint16_t TBITRUTCOMMON::coder_calc16 (void *src, uint16_t sz)
+{
+	uint16_t rv = 0;
+	uint8_t *s = (uint8_t*)src;
+	uint8_t dt8;
+	while (sz)
+		{
+		dt8 = *s++;
+		switch (dt8)
+			{
+			case 0: rv += 0x100; break;
+			case 0xFF: rv += 0x01; break;
+			default: rv += dt8; break;
+			}
+		rv += sz;
+		sz--;
+		}
+	return rv;
+}
+
+
+
+#ifdef MODEM_TX
+TBITMODTX::TBITMODTX (const S_GPIOPIN *p, uint32_t sz) : pin (p), c_alloc_size (sz*4 + sizeof(s_frame_prefix_t) + sizeof(s_frame_postfix_t))
 {
 _pin_low_init_out_pp ((S_GPIOPIN*)pin, 1, EHRTGPIOSPEED_MID);
 _pin_output ((S_GPIOPIN*)pin, false);
@@ -111,27 +134,27 @@ uint16_t rv = 0;
 		uint16_t coder_sz = 0, crc16 = 0;
 		uint8_t *s = (uint8_t*)src;
 		uint8_t *d = (uint8_t*)dst;
-		t_coder_t cd_dt;
+		s_coder_t cd_dt;
 			
 		// add wakeup
 		coder_data (C_WAKEUP_BYTE, cd_dt);
 		coder_sz += sizeof(cd_dt);
-		*((t_coder_t*)d) = cd_dt;
+		*((s_coder_t*)d) = cd_dt;
 		d += sizeof(cd_dt);
 		// add preamble 1
 		coder_data (C_PREAMBLE_BYTE_A, cd_dt);
 		coder_sz += sizeof(cd_dt);
-		*((t_coder_t*)d) = cd_dt;
+		*((s_coder_t*)d) = cd_dt;
 		d += sizeof(cd_dt);
 		// add preamble 2	
 		coder_data (C_PREAMBLE_BYTE_B, cd_dt);
 		coder_sz += sizeof(cd_dt);
-		*((t_coder_t*)d) = cd_dt;
+		*((s_coder_t*)d) = cd_dt;
 		d += sizeof(cd_dt);
 		// add len	
 		coder_data (sz, cd_dt);
 		coder_sz += sizeof(cd_dt);
-		*((t_coder_t*)d) = cd_dt;
+		*((s_coder_t*)d) = cd_dt;
 		d += sizeof(cd_dt);
 		
 		while (sz)
@@ -139,7 +162,7 @@ uint16_t rv = 0;
 			coder_data (*s++, cd_dt);
 			coder_sz += sizeof(cd_dt);
 			if (coder_sz > c_alloc_size) break;
-			*((t_coder_t*)d) = cd_dt;
+			*((s_coder_t*)d) = cd_dt;
 			d += sizeof(cd_dt);
 			sz--;
 			}
@@ -150,17 +173,17 @@ uint16_t rv = 0;
 			// add crc low
 			coder_data (crc16 & 0xFF, cd_dt);
 			coder_sz += sizeof(cd_dt);
-			*((t_coder_t*)d) = cd_dt;
+			*((s_coder_t*)d) = cd_dt;
 			d += sizeof(cd_dt);
 			// add crc hi
 			coder_data ((crc16>>8) & 0xFF, cd_dt);
 			coder_sz += sizeof(cd_dt);
-			*((t_coder_t*)d) = cd_dt;
+			*((s_coder_t*)d) = cd_dt;
 			d += sizeof(cd_dt);
 			// add sleep
 			coder_data (C_SLEEP_BYTE, cd_dt);
 			coder_sz += sizeof(cd_dt);
-			*((t_coder_t*)d) = cd_dt;
+			*((s_coder_t*)d) = cd_dt;
 			d += sizeof(cd_dt);
 				
 			rv = coder_sz;
@@ -170,31 +193,10 @@ return rv;
 }
 
 
-uint16_t TBITMODTX::coder_calc16 (void *src, uint16_t sz)
-{
-	uint16_t rv = 0;
-	uint8_t *s = (uint8_t*)src;
-	uint8_t dt8;
-	while (sz)
-		{
-		dt8 = *s++;
-		switch (dt8)
-			{
-			case 0: rv += 0x100; break;
-			case 0xFF: rv += 0x01; break;
-			default: rv += dt8; break;
-			}
-		rv += sz;
-		sz--;
-		}
-	return rv;
-}
-
-
 
 // coding format: 1110 = 1, 1000 = 0
 static const uint8_t codarr[4] = {0x88/*00*/,0x8E/*01*/,0xE8/*10*/,0xEE/*11*/};
-void TBITMODTX::coder_data (uint8_t data, t_coder_t &dst)
+void TBITMODTX::coder_data (uint8_t data, s_coder_t &dst)
 {
 uint8_t in_dmask = 128, dt8;
 uint8_t out_dix = 0;
@@ -297,8 +299,8 @@ uint16_t TBITMODTX::mncharr_data_coder (void *src, void *dst, uint8_t sz)
 {
 uint16_t rv = 0;
 add_mncharr_ix = 0;
-	t_frame_prefix_t prfix;
-	t_frame_postfix_t postfix;
+	s_frame_prefix_t prfix;
+	s_frame_postfix_t postfix;
 	do	{
 			if (!add_mncharr_preamble ()) break;
 			if (!add_mncharr_preamble ()) break;
@@ -316,7 +318,7 @@ add_mncharr_ix = 0;
 	
 return rv;
 }
-
+#endif
 
 
 #ifdef MODEM_RX
@@ -324,28 +326,76 @@ return rv;
 TRXINBIT::TRXINBIT (uint32_t size) : c_alloc_size (size)
 {
 	buffer = new uint8_t[c_alloc_size];
-	state_sw = EBITSTATE_NONE;
+	start ();
 }
 
 
 
 TRXINBIT::EBITSTATE TRXINBIT::state ()
 {
-	TRXINBIT::EBITSTATE rv = EBITSTATE_NONE;
-	return rv;
+	return state_sw;
 }
 
 
 
 void TRXINBIT::start ()
 {
+seq_sync_cnt = 0;
+pulses_tmp_cnt = 0;
+state_sw = EBITSTATE_SYNC_START;
+rx_bit_cnt = 0;
+last_error_bit_seqcnt = -1;
 }
 
 
 
 void TRXINBIT::stop ()
 {
+bool f_ok = false;
+do	{
+		if (state_sw != EBITSTATE_RXDATA) break;
+		uint32_t sz_byte = rx_bit_cnt / 8;
+		if (sz_byte <= sizeof(s_prepost_size_t)) break;
+		uint8_t *lp = buffer;
+		s_frame_prefix_t *pre = (s_frame_prefix_t*)lp;
+		if (pre->preamble_a != C_PREAMBLE_BYTE_A || pre->preamble_b != C_PREAMBLE_BYTE_B) break;
+		uint32_t sz_data = sz_byte - sizeof(s_prepost_size_t);
+		if (sz_data != pre->len) break;
+		lp += sizeof(s_frame_prefix_t);
+		uint16_t crc16 = coder_calc16 (lp, pre->len);
+		lp += pre->len;
+		s_frame_postfix_t *post = (s_frame_postfix_t*)lp;
+		if (crc16 != post->crc16) break;
+		f_ok = true;
+		state_sw = EBITSTATE_RX_COMPLETE;
+		} while (false);
+	
+if (f_ok == false) start ();
+}
 
+
+
+bool TRXINBIT::bit_insert (bool val)
+{
+	bool rv = false;
+	uint32_t byte_ofs = rx_bit_cnt / 8; 
+	if (byte_ofs < c_alloc_size)
+		{
+		uint8_t bit_ofs = rx_bit_cnt % 8;
+		uint8_t mask = 128 >> bit_ofs;
+		uint8_t dat = buffer[byte_ofs];
+		if (val)
+			{
+			dat |= mask;
+			}
+		else
+			{
+			dat &= (0xFF ^ mask);
+			}
+		buffer[byte_ofs] = dat;
+		rv = true;
+		}
+	return rv;
 }
 
 
@@ -353,13 +403,66 @@ void TRXINBIT::stop ()
 bool TRXINBIT::add_data_bit (bool val)
 {
 	bool rv = false;
+	switch (state_sw)
+		{
+		case EBITSTATE_SYNC_START:
+			{
+			if (!val)
+				{
+				if (pulses_tmp_cnt >= 3)
+					{
+					seq_sync_cnt++;
+					}
+				else
+					{
+					if (pulses_tmp_cnt == 1)
+						{
+						prev_rx_bit = true;
+						bit_insert (prev_rx_bit);
+						state_sw = EBITSTATE_RXDATA;
+						}
+					}
+				pulses_tmp_cnt = 0;
+				}
+			else
+				{
+				pulses_tmp_cnt++;
+				}
+			break;
+			}
+		case EBITSTATE_RXDATA:
+			{
+			if (!pulses_tmp_cnt)
+				{
+				prev_rx_bit = val;
+				pulses_tmp_cnt++;
+				bit_insert (prev_rx_bit);
+				}
+			else
+				{
+				if (prev_rx_bit != rv)
+					{
+					pulses_tmp_cnt = 0;
+					}
+				else
+					{
+					// error - need resync
+					last_error_bit_seqcnt = rx_bit_cnt;
+					start ();
+					}
+				}
+			break;
+			}
+		case EBITSTATE_RX_COMPLETE:
+			{
+			break;
+			}
+		case EBITSTATE_NONE:
+		default: 
+			start ();
+			break;
+		}
 	return rv;
-}
-
-
-
-void TRXINBIT::decode ()
-{
 }
 
 

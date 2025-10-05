@@ -17,28 +17,42 @@
 #pragma pack (push,1)
 typedef struct {
 	uint8_t data[4];
-} t_coder_t;
+} s_coder_t;
 
 typedef struct {
 	uint8_t data[2];
-} t_coder_mnch_t;
+} s_coder_mnch_t;
 
 typedef struct {
 	uint8_t preamble_a;
 	uint8_t preamble_b;
 	uint8_t len;
-} t_frame_prefix_t;
+} s_frame_prefix_t;
 
 typedef struct {
 	uint16_t crc16;
-} t_frame_postfix_t;
+} s_frame_postfix_t;
+
+
+
+
+typedef struct {
+	s_frame_prefix_t prx;
+	s_frame_postfix_t pst;
+} s_prepost_size_t;
+
 #pragma pack (pop)
 
 
 
+class TBITRUTCOMMON {
+	public:
+		uint16_t coder_calc16 (void *src, uint16_t sz);
+};
 
 
-class TBITMODTX {
+#ifdef MODEM_TX
+class TBITMODTX: public TBITRUTCOMMON {
 		const S_GPIOPIN *pin;
 
 		uint8_t *buffer;
@@ -57,9 +71,9 @@ class TBITMODTX {
 		uint8_t phases_cnt;
 	
 		uint16_t data_coder (void *src, void *dst, uint8_t sz);
-		void coder_data (uint8_t data, t_coder_t &dst); 
+		void coder_data (uint8_t data, s_coder_t &dst); 
 		
-		uint16_t coder_calc16 (void *src, uint16_t sz); 
+
 		bool set_bit_mncharr_array (void *d, uint32_t ixbit, bool v);
 		uint32_t add_mncharr_ix;
 		bool add_mncharr_bit (bool v);
@@ -73,15 +87,15 @@ class TBITMODTX {
 		bool is_free ();
 		bool send (void *src, uint8_t sz);
 };
-
+#endif
 
 
 #ifdef MODEM_RX
 
-class TRXINBIT {
+class TRXINBIT: public TBITRUTCOMMON {
 	public:
 		
-		enum EBITSTATE {EBITSTATE_NONE, EBITSTATE_SYNC_START, EBITSTATE_RXDATA, EBITSTATE_STOP, EBITSTATE_RX_COMPLETE, EBITSTATE_ENDENUM};
+		enum EBITSTATE {EBITSTATE_NONE, EBITSTATE_SYNC_START, EBITSTATE_RXDATA, EBITSTATE_RX_COMPLETE, EBITSTATE_ENDENUM};
 		TRXINBIT (uint32_t size);
 		void start ();
 		void stop ();
@@ -92,7 +106,17 @@ class TRXINBIT {
 		EBITSTATE state_sw;
 		uint8_t *buffer;
 		const uint32_t c_alloc_size;
-		void decode ();
+	
+		uint8_t seq_sync_cnt;
+		uint8_t pulses_tmp_cnt;
+	
+		uint32_t rx_bit_cnt;
+		bool bit_insert (bool val);
+		bool prev_rx_bit;
+	
+		int32_t last_error_bit_seqcnt;
+	
+		
 };
 
 
