@@ -11,9 +11,9 @@ static const uint32_t ocmode[2] = {TIM_OCMODE_PWM1, TIM_OCMODE_PWM2};
 
 	 
 
-static void TimIsr (TTIM_MKS_ISR *o)
+static void TimIsr (TTIM_ISR *o)
 {
-	TTIM_MKS_ISR &obj = *o;
+	TTIM_ISR &obj = *o;
 	obj.isr_tim ();
 }	
 
@@ -22,7 +22,7 @@ static void TimIsr (TTIM_MKS_ISR *o)
 void TIM1_IRQHandler ()
 {
 	void *cb = hard_timer_procedure_this_get (ESYSTIM_1);
-	if (cb) TimIsr ((TTIM_MKS_ISR*)cb);
+	if (cb) TimIsr ((TTIM_ISR*)cb);
 }
 #endif
 
@@ -31,7 +31,7 @@ void TIM1_IRQHandler ()
 void TIM2_IRQHandler ()
 {
 	void *cb = hard_timer_procedure_this_get (ESYSTIM_2);
-	if (cb) TimIsr ((TTIM_MKS_ISR*)cb);
+	if (cb) TimIsr ((TTIM_ISR*)cb);
 }
 #endif
 
@@ -40,7 +40,7 @@ void TIM2_IRQHandler ()
 void TIM3_IRQHandler ()
 {
 	void *cb = hard_timer_procedure_this_get (ESYSTIM_3);
-	if (cb) TimIsr ((TTIM_MKS_ISR*)cb);
+	if (cb) TimIsr ((TTIM_ISR*)cb);
 }
 #endif
 
@@ -68,7 +68,7 @@ void TIM5_IRQHandler ()
 #endif
 
 
-TTIM_MKS_USER_A::TTIM_MKS_USER_A (ESYSTIM t, uint32_t prd, uint32_t fr) : c_value_period (prd), c_value_freq (fr)
+TTIM_USER_A::TTIM_USER_A (ESYSTIM t, uint32_t prd, uint32_t fr) : c_value_period (prd), c_value_freq (fr)
 {
 tim_ix = t;
 TimHandle.Instance = hard_get_tim (t, 0);
@@ -76,14 +76,14 @@ timer_init (c_value_period, c_value_freq);
 }
 
 
-ESYSTIM TTIM_MKS_USER_A::get_tim ()
+ESYSTIM TTIM_USER_A::get_tim ()
 {
 	return tim_ix;
 }
 
 
 
-void TTIM_MKS_USER_A::timer_init (uint32_t period, uint32_t hz)
+void TTIM_USER_A::timer_init (uint32_t period, uint32_t hz)
 {
 //TIM_OC_InitTypeDef   sConfig;
 uint32_t uwPrescalerValue = (uint32_t) ((SystemCoreClock / hz) - 1);
@@ -102,15 +102,22 @@ hard_tim_clock_enable (tim_ix);
 
 
 
-uint32_t TTIM_MKS_USER_A::get_timer_counter ()
+uint32_t TTIM_USER_A::get_timer_counter ()
 {
 	return TimHandle.Instance->CNT;
 }
 
 
 
+void TTIM_USER_A::set_timer_counter (uint32_t v)
+{
+ TimHandle.Instance->CNT = v;
+}
 
-uint32_t TTIM_MKS_USER_A::get_delta (uint32_t prv, uint32_t cur)
+
+
+
+uint32_t TTIM_USER_A::get_delta (uint32_t prv, uint32_t cur)
 {
 uint32_t rv;
 if (prv <= cur)
@@ -126,28 +133,28 @@ return rv;
 
 
 
-uint32_t TTIM_MKS_USER_A::get_period ()
+uint32_t TTIM_USER_A::get_period ()
 {
 	return c_value_period;
 }
 
 
 
-uint32_t TTIM_MKS_USER_A::get_freq ()
+uint32_t TTIM_USER_A::get_freq ()
 {
 	return c_value_freq;
 }
 
 
 
-void TTIM_MKS_USER_A::clr_tim ()
+void TTIM_USER_A::clr_tim ()
 {
 	TimHandle.Instance->CNT = 0;
 }
 
 
 
-TTIM_MKS_ISR::TTIM_MKS_ISR (ESYSTIM t, uint32_t prd, uint32_t fr) : TTIM_MKS_USER_A (t, prd, fr)
+TTIM_ISR::TTIM_ISR (ESYSTIM t, uint32_t prd, uint32_t fr) : TTIM_USER_A (t, prd, fr)
 {
 	hard_timer_procedure_this_set (t, this);
 	uint8_t ix = 0;
@@ -161,7 +168,7 @@ TTIM_MKS_ISR::TTIM_MKS_ISR (ESYSTIM t, uint32_t prd, uint32_t fr) : TTIM_MKS_USE
 
 
 
-void TTIM_MKS_ISR::set_tim_cb (EPWMCHNL c, ITIMCB *cb)
+void TTIM_ISR::set_tim_cb (EPWMCHNL c, ITIMCB *cb)
 {
 	if (c < EPWMCHNL_ENDENUM) callback_user[c] = cb;
 }
@@ -170,7 +177,7 @@ void TTIM_MKS_ISR::set_tim_cb (EPWMCHNL c, ITIMCB *cb)
 
 
 // isr context executed
-void TTIM_MKS_ISR::isr_tim ()
+void TTIM_ISR::isr_tim ()
 {
 	//TGLOBISR::disable ();
 	uint32_t sr = TimHandle.Instance->SR;
@@ -210,7 +217,7 @@ void TTIM_MKS_ISR::isr_tim ()
 
 
 
-void TTIM_MKS_ISR::enable_timer_isr (bool st)
+void TTIM_ISR::enable_timer_isr (bool st)
 {
 	IRQn_Type tp = (IRQn_Type)(hard_tim_irq_type (tim_ix));
 	if (st)
@@ -225,7 +232,7 @@ void TTIM_MKS_ISR::enable_timer_isr (bool st)
 
 
 
-void TTIM_MKS_ISR::set_timer_oc_value (EPWMCHNL c, uint32_t v)
+void TTIM_ISR::set_timer_oc_value (EPWMCHNL c, uint32_t v)
 {
 	if (c < EPWMCHNL_ENDENUM) 
 		{
@@ -236,7 +243,7 @@ void TTIM_MKS_ISR::set_timer_oc_value (EPWMCHNL c, uint32_t v)
 
 
 
-void TTIM_MKS_ISR::start_one_short (EPWMCHNL c, uint32_t dly_mks)
+void TTIM_ISR::start_one_short (EPWMCHNL c, uint32_t dly_mks)
 {
 	if (c < EPWMCHNL_ENDENUM)
 		{
@@ -249,7 +256,7 @@ void TTIM_MKS_ISR::start_one_short (EPWMCHNL c, uint32_t dly_mks)
 
 
 
-void TTIM_MKS_ISR::enable_timer_oc (EPWMCHNL c, bool state)
+void TTIM_ISR::enable_timer_oc (EPWMCHNL c, bool state)
 {
 	if (c < EPWMCHNL_ENDENUM)
 		{

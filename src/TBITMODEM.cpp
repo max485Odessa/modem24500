@@ -318,13 +318,75 @@ return rv;
 }
 
 
+
 #ifdef MODEM_RX
-TBITMODRX::TBITMODRX (const S_GPIOPIN *p, uint32_t sz, const ESYSTIM t) : pinisr(p), c_alloc_size (sz), sys_tim (t)
+
+TRXINBIT::TRXINBIT (uint32_t size) : c_alloc_size (size)
 {
+	buffer = new uint8_t[c_alloc_size];
+	state_sw = EBITSTATE_NONE;
+}
+
+
+
+TRXINBIT::EBITSTATE TRXINBIT::state ()
+{
+	TRXINBIT::EBITSTATE rv = EBITSTATE_NONE;
+	return rv;
+}
+
+
+
+void TRXINBIT::start ()
+{
+}
+
+
+
+void TRXINBIT::stop ()
+{
+
+}
+
+
+
+bool TRXINBIT::add_data_bit (bool val)
+{
+	bool rv = false;
+	return rv;
+}
+
+
+
+void TRXINBIT::decode ()
+{
+}
+
+
+
+TBITMODRX::TBITMODRX (const S_GPIOPIN *p, uint32_t sz, const ESYSTIM t) : pinisr(p), sys_tim (t), c_data_period (100/*10 mks*/)
+{
+	 rx_state = ERXSTATE_NONE;
+	 bits = new TRXINBIT (sz);
+	 //buffer = new uint8_t[c_alloc_size];
 	 ext_isr_obj = new TEXTINT_ISR (pinisr, EGPINTMOD_FALLING);
 	 ext_isr_obj->set_cb (this);
-	 timer_isr = new TTIM_MKS_ISR (sys_tim, 65535, 10000000);
+	 f_inp_data_await = false;
+	 uint32_t jitperiod = c_data_period/10;
+	 c_wakeup_period = c_data_period - jitperiod;
+	 c_empty_check_period = c_data_period + jitperiod;
+	 timer_isr = new TTIM_ISR (sys_tim, c_data_period * 3, 10000000/*10 mhz*/);
+}
 
+
+
+void TBITMODRX::timer_sync ()
+{
+	timer_isr->set_timer_counter (0);
+	timer_isr->set_timer_oc_value ((EPWMCHNL)EPWMTYPE_WAKEUP, c_wakeup_period);
+	timer_isr->set_timer_oc_value ((EPWMCHNL)EPWMTYPE_EMPTY, c_empty_check_period);
+	timer_isr->enable_timer_oc ((EPWMCHNL)EPWMTYPE_WAKEUP, true);
+	timer_isr->enable_timer_oc ((EPWMCHNL)EPWMTYPE_EMPTY, true);
 }
 
 
@@ -347,14 +409,60 @@ uint32_t TBITMODRX::in (void *dst, uint32_t sz_max)
 
 void TBITMODRX::isr_gpio_cb_isr (uint8_t isr_n, bool pinstate)
 {
+timer_sync ();
+f_inp_data_await = false;
+bits->add_data_bit (true);
+}
+
+
+
+void TBITMODRX::gpio_isr_enable ()
+{
+}
+
+
+
+void TBITMODRX::gpio_isr_disable ()
+{
 }
 
 
 
 void TBITMODRX::tim_comp_cb_user_isr (ESYSTIM t, EPWMCHNL ch)
 {
-
+if (sys_tim == t)
+	{
+	switch (ch)
+		{
+		case (EPWMCHNL)EPWMTYPE_WAKEUP:
+			{
+			//TRXINBIT::EBITSTATE stbit = bits->state ();
+			f_inp_data_await = true;
+			gpio_isr_enable ();
+			break;
+			}
+		case (EPWMCHNL)EPWMTYPE_EMPTY:
+			{
+			if (f_inp_data_await) 
+				{
+				bits->add_data_bit (false);
+				gpio_isr_disable ();
+				f_inp_data_await = false;
+				}
+			break;
+			}
+		case EPWMCHNL_UPDATE:
+			{
+			timer_isr->enable_timer_oc ((EPWMCHNL)EPWMTYPE_WAKEUP, false);
+			timer_isr->enable_timer_oc ((EPWMCHNL)EPWMTYPE_EMPTY, false);
+			bits->stop ();
+			break;
+			}
+		default: break;
+		}
+	}
 }
+
 
 
 #endif

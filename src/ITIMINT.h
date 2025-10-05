@@ -19,7 +19,7 @@ class ITIMCB {
 
 
 
-class TTIM_MKS_USER_A {
+class TTIM_USER_A {
 		void timer_init (uint32_t period, uint32_t hz_clk);
 		
 	protected:
@@ -31,8 +31,9 @@ class TTIM_MKS_USER_A {
 		
 	
 	public:
-		TTIM_MKS_USER_A (ESYSTIM t, uint32_t prd, uint32_t fr);
+		TTIM_USER_A (ESYSTIM t, uint32_t prd, uint32_t fr);
 		uint32_t get_timer_counter ();
+		void set_timer_counter (uint32_t v);
 		uint32_t get_delta (uint32_t prv, uint32_t cur);
 		uint32_t get_period ();
 		uint32_t get_freq ();
@@ -41,7 +42,7 @@ class TTIM_MKS_USER_A {
 
 
 
-class TTIM_MKS_ISR: public TTIM_MKS_USER_A {
+class TTIM_ISR: public TTIM_USER_A {
 		bool f_active_isr[EPWMCHNL_ENDENUM];
 		bool f_one_short[EPWMCHNL_ENDENUM];
 		uint32_t a_pwmvalue[EPWMCHNL_ENDENUM];
@@ -52,7 +53,7 @@ class TTIM_MKS_ISR: public TTIM_MKS_USER_A {
 
 	
 	public:
-		TTIM_MKS_ISR (ESYSTIM t, uint32_t prd, uint32_t fr);
+		TTIM_ISR (ESYSTIM t, uint32_t prd, uint32_t fr);
 		void set_tim_cb (EPWMCHNL c, ITIMCB *cb);
 		void isr_tim ();
 		

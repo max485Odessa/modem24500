@@ -77,16 +77,48 @@ class TBITMODTX {
 
 
 #ifdef MODEM_RX
-class TBITMODRX: public IEXTISRCB, public ITIMCB {
+
+class TRXINBIT {
+	public:
+		
+		enum EBITSTATE {EBITSTATE_NONE, EBITSTATE_SYNC_START, EBITSTATE_RXDATA, EBITSTATE_STOP, EBITSTATE_RX_COMPLETE, EBITSTATE_ENDENUM};
+		TRXINBIT (uint32_t size);
+		void start ();
+		void stop ();
+		bool add_data_bit (bool val);
+		EBITSTATE state ();
+		
+	private:
+		EBITSTATE state_sw;
 		uint8_t *buffer;
 		const uint32_t c_alloc_size;
+		void decode ();
+};
+
+
+
+class TBITMODRX: public IEXTISRCB, public ITIMCB {
+		enum ERXSTATE {ERXSTATE_NONE = 0, ERXSTATE_SYNC, ERXSTATE_DATA, ERXSTATE_END, ERXSTATE_WAITBLANK, ERXSTATE_ENDENUM};
+		enum EPWMTYPE {EPWMTYPE_WAKEUP = EPWMCHNL_PWM1, EPWMTYPE_EMPTY = EPWMCHNL_PWM2, EPWMTYPE_ENDENUM};
+
 	
 		const S_GPIOPIN *pinisr;
+		const uint32_t c_data_period;
+		uint32_t c_wakeup_period;
+		uint32_t c_empty_check_period;
+		bool f_inp_data_await;
+		
+		ERXSTATE rx_state;
+		
+		void timer_sync ();
+		void gpio_isr_enable ();
+		void gpio_isr_disable ();
+		TRXINBIT *bits;
 	
 		virtual void isr_gpio_cb_isr (uint8_t isr_n, bool pinstate) override;
 		TEXTINT_ISR *ext_isr_obj;
 	
-		TTIM_MKS_ISR *timer_isr;
+		TTIM_ISR *timer_isr;
 		const ESYSTIM sys_tim;
 		virtual void tim_comp_cb_user_isr (ESYSTIM t, EPWMCHNL ch) override;
 	
