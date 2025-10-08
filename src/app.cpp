@@ -8,7 +8,7 @@ const S_GPIOPIN pin_rxisr = {GPIOA, GPIO_PIN_0};
 #endif
 
 #ifdef MODEM_TX
-TBITMODRX *mod_tx = 0;
+TBITMODTX *mod_tx = 0;
 #endif
 
 static inline void tx_pin (bool val);

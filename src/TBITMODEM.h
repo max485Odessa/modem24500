@@ -6,8 +6,8 @@
 
 #ifdef MODEM_RX
 	#include "IEXTINT.h"
-	#include "ITIMINT.h"
 #endif
+	#include "ITIMINT.h"
 
 #define C_WAKEUP_BYTE 0xFF
 #define C_PREAMBLE_BYTE_A 0x55
@@ -44,6 +44,11 @@ typedef struct {
 #pragma pack (pop)
 
 
+/*
+
+*/
+
+
 
 class TBITRUTCOMMON {
 	public:
@@ -52,13 +57,15 @@ class TBITRUTCOMMON {
 
 
 #ifdef MODEM_TX
-class TBITMODTX: public TBITRUTCOMMON {
+class TBITMODTX: public TBITRUTCOMMON, public ITIMCB {
 		const S_GPIOPIN *pin;
-
+		virtual void tim_comp_cb_user_isr (ESYSTIM t, EPWMCHNL ch) override;
+		const ESYSTIM sys_tim; 
+		TTIM_ISR *timer_isr;
+	
 		uint8_t *buffer;
 		const uint32_t c_alloc_size;
 	
-		void task_periodic ();
 		void clear ();
 		
 		uint8_t *lp_tx_data;
@@ -70,9 +77,6 @@ class TBITMODTX: public TBITRUTCOMMON {
 		bool f_cur_modulat_bit;
 		uint8_t phases_cnt;
 	
-		uint16_t data_coder (void *src, void *dst, uint8_t sz);
-		void coder_data (uint8_t data, s_coder_t &dst); 
-		
 
 		bool set_bit_mncharr_array (void *d, uint32_t ixbit, bool v);
 		uint32_t add_mncharr_ix;
@@ -83,7 +87,7 @@ class TBITMODTX: public TBITRUTCOMMON {
 		uint16_t mncharr_data_coder (void *src, void *dst, uint8_t sz);
 	
 	public:
-		TBITMODTX (const S_GPIOPIN *p, uint32_t sz);
+		TBITMODTX (ESYSTIM t, const S_GPIOPIN *p, uint32_t sz);
 		bool is_free ();
 		bool send (void *src, uint8_t sz);
 };

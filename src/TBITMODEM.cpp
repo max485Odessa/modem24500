@@ -26,12 +26,14 @@ uint16_t TBITRUTCOMMON::coder_calc16 (void *src, uint16_t sz)
 
 
 #ifdef MODEM_TX
-TBITMODTX::TBITMODTX (const S_GPIOPIN *p, uint32_t sz) : pin (p), c_alloc_size (sz*4 + sizeof(s_frame_prefix_t) + sizeof(s_frame_postfix_t))
+TBITMODTX::TBITMODTX (ESYSTIM t, const S_GPIOPIN *p, uint32_t sz) : sys_tim (t), pin (p), c_alloc_size (sz*4 + sizeof(s_frame_prefix_t) + sizeof(s_frame_postfix_t))
 {
 _pin_low_init_out_pp ((S_GPIOPIN*)pin, 1, EHRTGPIOSPEED_MID);
 _pin_output ((S_GPIOPIN*)pin, false);
 buffer = new uint8_t[c_alloc_size];
 clear ();
+timer_isr = new TTIM_ISR (sys_tim, 5, 10000000/*10 mhz*/);	// ~200 khz
+timer_isr->enable_timer_oc (EPWMCHNL_UPDATE, true);
 }
 
 
@@ -87,7 +89,7 @@ bool TBITMODTX::send (void *src, uint8_t sz)
 bool rv = false;
 if (!lp_tx_data && sz && sz <= c_alloc_size)
 	{
-	uint16_t csz = data_coder (src, buffer, sz);
+	uint16_t csz = mncharr_data_coder (src, buffer, sz);
 	if (csz)
 		{
 		tx_bitmask = 0;
@@ -101,7 +103,7 @@ return rv;
 
 
 
-void TBITMODTX::task_periodic ()
+void TBITMODTX::tim_comp_cb_user_isr (ESYSTIM t, EPWMCHNL ch)
 {
 if (!phases_cnt)
 	{
@@ -120,94 +122,6 @@ switch (phases_cnt)
 		phases_cnt--;
 		break;
 		}
-	}
-}
-
-
-
-uint16_t TBITMODTX::data_coder (void *src, void *dst, uint8_t sz)
-{
-uint16_t rv = 0;
-	if (sz)
-		{
-		uint8_t calc_sz = sz;
-		uint16_t coder_sz = 0, crc16 = 0;
-		uint8_t *s = (uint8_t*)src;
-		uint8_t *d = (uint8_t*)dst;
-		s_coder_t cd_dt;
-			
-		// add wakeup
-		coder_data (C_WAKEUP_BYTE, cd_dt);
-		coder_sz += sizeof(cd_dt);
-		*((s_coder_t*)d) = cd_dt;
-		d += sizeof(cd_dt);
-		// add preamble 1
-		coder_data (C_PREAMBLE_BYTE_A, cd_dt);
-		coder_sz += sizeof(cd_dt);
-		*((s_coder_t*)d) = cd_dt;
-		d += sizeof(cd_dt);
-		// add preamble 2	
-		coder_data (C_PREAMBLE_BYTE_B, cd_dt);
-		coder_sz += sizeof(cd_dt);
-		*((s_coder_t*)d) = cd_dt;
-		d += sizeof(cd_dt);
-		// add len	
-		coder_data (sz, cd_dt);
-		coder_sz += sizeof(cd_dt);
-		*((s_coder_t*)d) = cd_dt;
-		d += sizeof(cd_dt);
-		
-		while (sz)
-			{
-			coder_data (*s++, cd_dt);
-			coder_sz += sizeof(cd_dt);
-			if (coder_sz > c_alloc_size) break;
-			*((s_coder_t*)d) = cd_dt;
-			d += sizeof(cd_dt);
-			sz--;
-			}
-		if (!sz) 
-			{
-			uint16_t crc16 = coder_calc16 (src, calc_sz);
-			
-			// add crc low
-			coder_data (crc16 & 0xFF, cd_dt);
-			coder_sz += sizeof(cd_dt);
-			*((s_coder_t*)d) = cd_dt;
-			d += sizeof(cd_dt);
-			// add crc hi
-			coder_data ((crc16>>8) & 0xFF, cd_dt);
-			coder_sz += sizeof(cd_dt);
-			*((s_coder_t*)d) = cd_dt;
-			d += sizeof(cd_dt);
-			// add sleep
-			coder_data (C_SLEEP_BYTE, cd_dt);
-			coder_sz += sizeof(cd_dt);
-			*((s_coder_t*)d) = cd_dt;
-			d += sizeof(cd_dt);
-				
-			rv = coder_sz;
-			}
-		}
-return rv;
-}
-
-
-
-// coding format: 1110 = 1, 1000 = 0
-static const uint8_t codarr[4] = {0x88/*00*/,0x8E/*01*/,0xE8/*10*/,0xEE/*11*/};
-void TBITMODTX::coder_data (uint8_t data, s_coder_t &dst)
-{
-uint8_t in_dmask = 128, dt8;
-uint8_t out_dix = 0;
-uint8_t byte_offs;
-	uint8_t cnt = 4;
-while (cnt)
-	{
-	dt8 = data & 0x3;
-	dst.data[out_dix++] = codarr[dt8];
-	data >>= 2;
-	cnt--;
 	}
 }
 
@@ -415,11 +329,29 @@ bool TRXINBIT::add_data_bit (bool val)
 					}
 				else
 					{
-					if (pulses_tmp_cnt == 1)
+					switch (pulses_tmp_cnt)
 						{
-						prev_rx_bit = true;
-						bit_insert (prev_rx_bit);
-						state_sw = EBITSTATE_RXDATA;
+						case 0:
+							{
+							// error sync
+							seq_sync_cnt = 0;
+							break;
+							}
+						case 1:
+							{
+							if (seq_sync_cnt >= 2)
+								{
+								bit_insert (true);
+								state_sw = EBITSTATE_RXDATA;
+								}
+							else
+								{
+								// error sync
+								seq_sync_cnt = 0;
+								}
+							break;
+							}
+						default: break;
 						}
 					}
 				pulses_tmp_cnt = 0;
@@ -436,12 +368,12 @@ bool TRXINBIT::add_data_bit (bool val)
 				{
 				prev_rx_bit = val;
 				pulses_tmp_cnt++;
-				bit_insert (prev_rx_bit);
 				}
 			else
 				{
 				if (prev_rx_bit != rv)
 					{
+					bit_insert (prev_rx_bit);
 					pulses_tmp_cnt = 0;
 					}
 				else
